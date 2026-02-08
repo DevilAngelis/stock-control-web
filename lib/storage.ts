@@ -64,6 +64,15 @@ export async function addCategory(name: string, color: string): Promise<Category
   return cat;
 }
 
+export async function updateCategory(id: string, data: Partial<Omit<Category, "id">>): Promise<Category | undefined> {
+  const categories = await getCategories();
+  const index = categories.findIndex((c) => c.id === id);
+  if (index === -1) return undefined;
+  categories[index] = { ...categories[index], ...data };
+  await AsyncStorage.setItem(KEYS.CATEGORIES, JSON.stringify(categories));
+  return categories[index];
+}
+
 export async function deleteCategory(id: string): Promise<void> {
   const categories = await getCategories();
   const filtered = categories.filter((c) => c.id !== id);

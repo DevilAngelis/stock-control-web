@@ -55,6 +55,15 @@ function RootLayoutNav() {
           headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
         }}
       />
+      <Stack.Screen
+        name="categories"
+        options={{
+          title: "Categorias",
+          presentation: "modal",
+          headerTintColor: "#0D9488",
+          headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
+        }}
+      />
     </Stack>
   );
 }

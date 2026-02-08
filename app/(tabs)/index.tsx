@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import Colors from "@/constants/colors";
 import { getProducts, getCategories, getMovements, Product, Category, Movement } from "@/lib/storage";
 
@@ -180,6 +180,12 @@ export default function DashboardScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Categorias</Text>
+          <Pressable
+            onPress={() => router.push("/categories")}
+            style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={styles.manageLink}>Gerenciar</Text>
+          </Pressable>
         </View>
         <View style={styles.catGrid}>
           {categories.map((cat) => {
@@ -291,6 +297,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "Inter_600SemiBold",
     color: Colors.text,
+  },
+  manageLink: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.primary,
   },
   emptyState: {
     alignItems: "center",
