@@ -178,6 +178,29 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        <View style={styles.quickActions}>
+          <Pressable
+            onPress={() => router.push("/reports")}
+            style={({ pressed }) => [styles.quickCard, pressed && { opacity: 0.85 }]}
+          >
+            <View style={[styles.quickIcon, { backgroundColor: "#EDE9FE" }]}>
+              <Ionicons name="bar-chart-outline" size={20} color="#7C3AED" />
+            </View>
+            <Text style={styles.quickLabel}>Relatórios</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/backup")}
+            style={({ pressed }) => [styles.quickCard, pressed && { opacity: 0.85 }]}
+          >
+            <View style={[styles.quickIcon, { backgroundColor: "#DBEAFE" }]}>
+              <Ionicons name="cloud-download-outline" size={20} color="#3B82F6" />
+            </View>
+            <Text style={styles.quickLabel}>Backup & Dados</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+          </Pressable>
+        </View>
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Categorias</Text>
           <Pressable
@@ -302,6 +325,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
     color: Colors.primary,
+  },
+  quickActions: {
+    gap: 10,
+    marginBottom: 20,
+  },
+  quickCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    gap: 12,
+  },
+  quickIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
   },
   emptyState: {
     alignItems: "center",

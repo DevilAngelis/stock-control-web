@@ -150,3 +150,36 @@ export async function addMovement(data: Omit<Movement, "id" | "createdAt">): Pro
 
   return movement;
 }
+
+export interface BackupData {
+  version: number;
+  exportedAt: string;
+  categories: Category[];
+  products: Product[];
+  movements: Movement[];
+}
+
+export async function exportAllData(): Promise<BackupData> {
+  const [categories, products, movements] = await Promise.all([
+    getCategories(),
+    getProducts(),
+    getMovements(),
+  ]);
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    categories,
+    products,
+    movements,
+  };
+}
+
+export async function importAllData(data: BackupData): Promise<void> {
+  await AsyncStorage.setItem(KEYS.CATEGORIES, JSON.stringify(data.categories));
+  await AsyncStorage.setItem(KEYS.PRODUCTS, JSON.stringify(data.products));
+  await AsyncStorage.setItem(KEYS.MOVEMENTS, JSON.stringify(data.movements));
+}
+
+export async function clearAllData(): Promise<void> {
+  await AsyncStorage.multiRemove([KEYS.PRODUCTS, KEYS.CATEGORIES, KEYS.MOVEMENTS]);
+}

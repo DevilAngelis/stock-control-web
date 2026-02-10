@@ -64,6 +64,24 @@ function RootLayoutNav() {
           headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
         }}
       />
+      <Stack.Screen
+        name="reports"
+        options={{
+          title: "Relatórios",
+          presentation: "modal",
+          headerTintColor: "#0D9488",
+          headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
+        }}
+      />
+      <Stack.Screen
+        name="backup"
+        options={{
+          title: "Backup & Dados",
+          presentation: "modal",
+          headerTintColor: "#0D9488",
+          headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
+        }}
+      />
     </Stack>
   );
 }
