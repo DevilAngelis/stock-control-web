@@ -6,6 +6,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
+import { getProducts, importAllData } from "@/lib/storage";
+import { getSeedData } from "@/lib/seed-data";
 import {
   useFonts,
   Inter_400Regular,
@@ -99,6 +101,18 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
+
+  useEffect(() => {
+    async function seedIfEmpty() {
+      try {
+        const existing = await getProducts();
+        if (existing.length === 0) {
+          await importAllData(getSeedData());
+        }
+      } catch (_) {}
+    }
+    seedIfEmpty();
+  }, []);
 
   if (!fontsLoaded) return null;
 
