@@ -116,6 +116,7 @@ export default function DashboardScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.companyName}>MTEC ENERGIA</Text>
         <Text style={styles.greeting}>Controle de Estoque</Text>
         <Text style={styles.subGreeting}>Visão geral do seu inventário</Text>
 
@@ -237,8 +238,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
   },
+  companyName: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    color: Colors.primary,
+    letterSpacing: 2,
+    textTransform: "uppercase" as const,
+    marginBottom: 4,
+  },
   greeting: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: "Inter_700Bold",
     color: Colors.text,
     marginBottom: 4,

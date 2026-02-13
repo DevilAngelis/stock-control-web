@@ -98,14 +98,14 @@ export default function BackupScreen() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `estoque_backup_${dateStr}.json`;
+        a.download = `mtec_energia_backup_${dateStr}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         Alert.alert("Sucesso", "Backup exportado com sucesso!");
       } else {
-        const path = `${FileSystem.cacheDirectory}estoque_backup_${dateStr}.json`;
+        const path = `${FileSystem.cacheDirectory}mtec_energia_backup_${dateStr}.json`;
         await FileSystem.writeAsStringAsync(path, json, { encoding: FileSystem.EncodingType.UTF8 });
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
@@ -245,6 +245,7 @@ export default function BackupScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.companyTag}>MTEC ENERGIA</Text>
         <View style={styles.statsRow}>
           <View style={styles.statPill}>
             <Ionicons name="cube-outline" size={14} color={Colors.primary} />
@@ -378,6 +379,13 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+  },
+  companyTag: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: Colors.primary,
+    letterSpacing: 2,
+    marginBottom: 16,
   },
   statsRow: {
     flexDirection: "row",
