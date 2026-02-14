@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -28,8 +29,6 @@ function setupCors(app: express.Application) {
     }
 
     const origin = req.header("origin");
-
-    // Allow localhost origins for Expo web development (any port)
     const isLocalhost =
       origin?.startsWith("http://localhost:") ||
       origin?.startsWith("http://127.0.0.1:");
@@ -44,10 +43,7 @@ function setupCors(app: express.Application) {
       res.header("Access-Control-Allow-Credentials", "true");
     }
 
-    if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
-    }
-
+    if (req.method === "OPTIONS") return res.sendStatus(200);
     next();
   });
 }
@@ -60,7 +56,6 @@ function setupBodyParsing(app: express.Application) {
       },
     }),
   );
-
   app.use(express.urlencoded({ extended: false }));
 }
 
@@ -78,18 +73,10 @@ function setupRequestLogging(app: express.Application) {
 
     res.on("finish", () => {
       if (!path.startsWith("/api")) return;
-
       const duration = Date.now() - start;
-
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
+      if (capturedJsonResponse) logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (logLine.length > 80) logLine = logLine.slice(0, 79) + "…";
       log(logLine);
     });
 
@@ -117,9 +104,7 @@ function serveExpoManifest(platform: string, res: Response) {
   );
 
   if (!fs.existsSync(manifestPath)) {
-    return res
-      .status(404)
-      .json({ error: `Manifest not found for platform: ${platform}` });
+    return res.status(404).json({ error: `Manifest not found for platform: ${platform}` });
   }
 
   res.setHeader("expo-protocol-version", "1");
@@ -173,28 +158,13 @@ function configureExpoAndLanding(app: express.Application) {
   log("Serving static Expo files with dynamic manifest routing");
 
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith("/api")) {
-      return next();
-    }
-
-    if (req.path !== "/" && req.path !== "/manifest") {
-      return next();
-    }
+    if (req.path.startsWith("/api")) return next();
+    if (req.path !== "/" && req.path !== "/manifest") return next();
 
     const platform = req.header("expo-platform");
-    if (platform && (platform === "ios" || platform === "android")) {
-      return serveExpoManifest(platform, res);
-    }
+    if (platform && (platform === "ios" || platform === "android")) return serveExpoManifest(platform, res);
 
-    if (req.path === "/") {
-      return serveLandingPage({
-        req,
-        res,
-        landingPageTemplate,
-        appName,
-      });
-    }
-
+    if (req.path === "/") return serveLandingPage({ req, res, landingPageTemplate, appName });
     next();
   });
 
@@ -206,21 +176,13 @@ function configureExpoAndLanding(app: express.Application) {
 
 function setupErrorHandler(app: express.Application) {
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
-    const error = err as {
-      status?: number;
-      statusCode?: number;
-      message?: string;
-    };
-
+    const error = err as { status?: number; statusCode?: number; message?: string };
     const status = error.status || error.statusCode || 500;
     const message = error.message || "Internal Server Error";
 
     console.error("Internal Server Error:", err);
 
-    if (res.headersSent) {
-      return next(err);
-    }
-
+    if (res.headersSent) return next(err);
     return res.status(status).json({ message });
   });
 }
@@ -229,22 +191,14 @@ function setupErrorHandler(app: express.Application) {
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
-
   configureExpoAndLanding(app);
-
   const server = await registerRoutes(app);
-
   setupErrorHandler(app);
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`express server serving on port ${port}`);
-    },
-  );
+
+  // Ajuste para Windows: usar apenas host "localhost" e sem reusePort
+  server.listen(port, "localhost", () => {
+    log(`express server serving on http://localhost:${port}`);
+  });
 })();
