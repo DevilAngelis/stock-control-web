@@ -91,7 +91,7 @@ function setupErrorHandler(app: express.Application) {
   // Servir build web do Expo (dist)
   app.use(express.static(path.resolve(process.cwd(), "dist")));
 
-  app.get("*", (_req, res) => {
+  app.get("/*", (_req, res) => {
     res.sendFile(path.resolve(process.cwd(), "dist", "index.html"));
   });
 
