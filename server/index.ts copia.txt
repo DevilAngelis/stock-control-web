@@ -91,8 +91,7 @@ function setupErrorHandler(app: express.Application) {
   // Servir build web do Expo (dist)
   app.use(express.static(path.resolve(process.cwd(), "dist")));
 
-  app.use((req, res, next) => {
-    if (req.path.startsWith("/api")) return next();
+  app.get("/*", (_req, res) => {
     res.sendFile(path.resolve(process.cwd(), "dist", "index.html"));
   });
 
@@ -104,3 +103,31 @@ function setupErrorHandler(app: express.Application) {
     log(`Server running on port ${port}`);
   });
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+Substitua isto:
+
+app.get("/*", (_req, res) => {
+  res.sendFile(path.resolve(process.cwd(), "dist", "index.html"));
+});
+
+
+
+Por isto:
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+  res.sendFile(path.resolve(process.cwd(), "dist", "index.html"));
+});
+
+e gere novo arquivo correto
