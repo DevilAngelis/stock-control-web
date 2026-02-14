@@ -201,6 +201,4 @@ function setupErrorHandler(app: express.Application) {
   server.listen(port, "0.0.0.0", () => {
   log(`express server serving on port ${port}`);
 });
-
-  });
 })();
