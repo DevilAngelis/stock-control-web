@@ -8,9 +8,12 @@ import {
   Pressable,
   FlatList,
   Modal,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
+import * as Print from "expo-print";
+import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import {
   getProducts,
@@ -495,10 +498,193 @@ export default function ReportsScreen() {
     );
   };
 
+  const buildPrintHtml = () => {
+    const tabLabel = TAB_CONFIG.find((t) => t.key === tab)?.label ?? "";
+    const periodLabel = PERIOD_LABELS[period];
+    const now = new Date();
+    const dateStr = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+    const filterNote = selectedProductIds.length > 0 ? `Filtro: ${selectedProductIds.length} produto(s) selecionado(s)` : "Sem filtro (Todos produtos)";
+
+    const css = `
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1E293B; padding: 24px; font-size: 12px; }
+        .header { text-align: center; border-bottom: 2px solid #0D9488; padding-bottom: 12px; margin-bottom: 20px; }
+        .header h1 { font-size: 18px; color: #0D9488; letter-spacing: 3px; margin-bottom: 4px; }
+        .header h2 { font-size: 14px; color: #334155; }
+        .header .meta { font-size: 11px; color: #64748B; margin-top: 6px; }
+        .section-title { font-size: 13px; font-weight: 700; color: #0F172A; margin: 16px 0 8px; border-left: 3px solid #0D9488; padding-left: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        th { background-color: #F1F5F9; font-weight: 600; text-align: left; padding: 8px; border-bottom: 2px solid #CBD5E1; font-size: 11px; color: #475569; }
+        td { padding: 6px 8px; border-bottom: 1px solid #E2E8F0; font-size: 11px; }
+        tr:nth-child(even) { background-color: #F8FAFC; }
+        .summary-box { display: flex; gap: 16px; margin-bottom: 16px; }
+        .summary-item { flex: 1; background: #F1F5F9; border-radius: 8px; padding: 12px; text-align: center; }
+        .summary-item .value { font-size: 18px; font-weight: 700; color: #0F172A; }
+        .summary-item .label { font-size: 10px; color: #64748B; margin-top: 2px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+        .badge-critical { background: #FEE2E2; color: #DC2626; }
+        .badge-warning { background: #FEF3C7; color: #D97706; }
+        .badge-ok { background: #E0F2F1; color: #0D9488; }
+        .entry { color: #10B981; }
+        .exit { color: #EF4444; }
+        .footer { text-align: center; font-size: 10px; color: #94A3B8; margin-top: 24px; border-top: 1px solid #E2E8F0; padding-top: 8px; }
+        @media print { body { padding: 12px; } }
+      </style>`;
+
+    let body = "";
+
+    if (tab === "entries") {
+      body += `<div class="summary-box">
+        <div class="summary-item"><div class="value entry">+${totalEntryQty} un.</div><div class="label">Total Entradas</div></div>
+        <div class="summary-item"><div class="value">${formatCurrency(entryValue)}</div><div class="label">Valor Total</div></div>
+        <div class="summary-item"><div class="value">${entries.length}</div><div class="label">Registros</div></div>
+      </div>`;
+      if (topEntryByProduct.length > 0) {
+        body += `<div class="section-title">Ranking por Produto</div><table><tr><th>Produto</th><th style="text-align:right">Quantidade</th></tr>`;
+        topEntryByProduct.forEach((item) => {
+          body += `<tr><td>${item.product!.name}</td><td style="text-align:right">${item.qty}</td></tr>`;
+        });
+        body += `</table>`;
+      }
+      body += `<div class="section-title">Histórico de Entradas</div>`;
+      if (entries.length === 0) {
+        body += `<p>Nenhuma entrada no período.</p>`;
+      } else {
+        body += `<table><tr><th>Data</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Observação</th></tr>`;
+        entries.forEach((m) => {
+          const p = products.find((pr) => pr.id === m.productId);
+          body += `<tr><td>${formatDate(m.createdAt)}</td><td>${p?.name ?? "Removido"}</td><td style="text-align:right" class="entry">+${m.quantity}</td><td>${m.note || "-"}</td></tr>`;
+        });
+        body += `</table>`;
+      }
+    } else if (tab === "exits") {
+      body += `<div class="summary-box">
+        <div class="summary-item"><div class="value exit">-${totalExitQty} un.</div><div class="label">Total Saídas</div></div>
+        <div class="summary-item"><div class="value">${formatCurrency(exitValue)}</div><div class="label">Valor Total</div></div>
+        <div class="summary-item"><div class="value">${exits.length}</div><div class="label">Registros</div></div>
+      </div>`;
+      if (topExitByProduct.length > 0) {
+        body += `<div class="section-title">Ranking por Produto</div><table><tr><th>Produto</th><th style="text-align:right">Quantidade</th></tr>`;
+        topExitByProduct.forEach((item) => {
+          body += `<tr><td>${item.product!.name}</td><td style="text-align:right">${item.qty}</td></tr>`;
+        });
+        body += `</table>`;
+      }
+      body += `<div class="section-title">Histórico de Saídas</div>`;
+      if (exits.length === 0) {
+        body += `<p>Nenhuma saída no período.</p>`;
+      } else {
+        body += `<table><tr><th>Data</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Observação</th></tr>`;
+        exits.forEach((m) => {
+          const p = products.find((pr) => pr.id === m.productId);
+          body += `<tr><td>${formatDate(m.createdAt)}</td><td>${p?.name ?? "Removido"}</td><td style="text-align:right" class="exit">-${m.quantity}</td><td>${m.note || "-"}</td></tr>`;
+        });
+        body += `</table>`;
+      }
+    } else if (tab === "general") {
+      const totalStockValue = products.reduce((a, p) => a + p.quantity * p.price, 0);
+      const avgPrice = products.length > 0 ? products.reduce((a, p) => a + p.price, 0) / products.length : 0;
+      const lowStock = products.filter((p) => p.quantity <= p.minStock);
+      const zeroStock = products.filter((p) => p.quantity === 0);
+
+      body += `<div class="summary-box">
+        <div class="summary-item"><div class="value entry">+${totalEntryQty}</div><div class="label">Entradas</div></div>
+        <div class="summary-item"><div class="value exit">-${totalExitQty}</div><div class="label">Saídas</div></div>
+        <div class="summary-item"><div class="value">${totalEntryQty - totalExitQty >= 0 ? "+" : ""}${totalEntryQty - totalExitQty}</div><div class="label">Saldo</div></div>
+      </div>`;
+
+      body += `<div class="section-title">Resumo do Estoque</div>
+      <table>
+        <tr><td>Valor total em estoque</td><td style="text-align:right; font-weight:600">${formatCurrency(totalStockValue)}</td></tr>
+        <tr><td>Total de produtos</td><td style="text-align:right; font-weight:600">${products.length}</td></tr>
+        <tr><td>Preço médio unitário</td><td style="text-align:right; font-weight:600">${formatCurrency(avgPrice)}</td></tr>
+        <tr><td>Estoque baixo</td><td style="text-align:right; font-weight:600; color:${lowStock.length > 0 ? "#D97706" : "#0F172A"}">${lowStock.length}</td></tr>
+        <tr><td>Sem estoque</td><td style="text-align:right; font-weight:600; color:${zeroStock.length > 0 ? "#DC2626" : "#0F172A"}">${zeroStock.length}</td></tr>
+      </table>`;
+
+      if (categoryBreakdown.length > 0) {
+        body += `<div class="section-title">Valor por Categoria</div><table><tr><th>Categoria</th><th style="text-align:right">Produtos</th><th style="text-align:right">Qtd Total</th><th style="text-align:right">Valor</th></tr>`;
+        categoryBreakdown.forEach((item) => {
+          body += `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${item.category.color};margin-right:6px;vertical-align:middle"></span>${item.category.name}</td><td style="text-align:right">${item.productCount}</td><td style="text-align:right">${item.totalQty}</td><td style="text-align:right">${formatCurrency(item.totalVal)}</td></tr>`;
+        });
+        body += `</table>`;
+      }
+    } else {
+      const criticalItems = consumptionData.filter((c) => c.status === "critical");
+      const warningItems = consumptionData.filter((c) => c.status === "warning");
+      const totalMonthlyCost = consumptionData.reduce((a, c) => a + c.costProjection, 0);
+
+      body += `<div class="summary-box">
+        <div class="summary-item"><div class="value">${consumptionData.length}</div><div class="label">Materiais Consumidos</div></div>
+        <div class="summary-item"><div class="value">${formatCurrency(totalMonthlyCost)}</div><div class="label">Projeção Mensal</div></div>
+      </div>`;
+
+      if (criticalItems.length > 0 || warningItems.length > 0) {
+        body += `<div style="background:#FEF2F2;padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:11px;color:#DC2626">`;
+        if (criticalItems.length > 0) body += `${criticalItems.length} material(is) acabam em menos de 7 dias`;
+        if (criticalItems.length > 0 && warningItems.length > 0) body += ` | `;
+        if (warningItems.length > 0) body += `${warningItems.length} em até 30 dias`;
+        body += `</div>`;
+      }
+
+      if (consumptionData.length > 0) {
+        body += `<div class="section-title">Análise por Material</div>
+        <table><tr><th>Material</th><th>Categoria</th><th style="text-align:right">Consumido</th><th style="text-align:right">Média/dia</th><th style="text-align:right">Proj./mês</th><th style="text-align:right">Estoque</th><th style="text-align:right">Dias restantes</th><th>Status</th></tr>`;
+        consumptionData.forEach((item) => {
+          const badge = item.status === "critical" ? "badge-critical" : item.status === "warning" ? "badge-warning" : "badge-ok";
+          const statusLabel = item.status === "critical" ? "Crítico" : item.status === "warning" ? "Atenção" : "OK";
+          body += `<tr><td>${item.product.name}</td><td>${item.category?.name ?? "-"}</td><td style="text-align:right">${item.totalConsumed}</td><td style="text-align:right">${item.dailyAvg.toFixed(1)}</td><td style="text-align:right">${Math.round(item.monthlyProjection)}</td><td style="text-align:right">${item.product.quantity}</td><td style="text-align:right">${item.daysUntilEmpty ?? "-"}</td><td><span class="badge ${badge}">${statusLabel}</span></td></tr>`;
+        });
+        body += `</table>`;
+      } else {
+        body += `<p>Sem dados de consumo no período.</p>`;
+      }
+    }
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório MTEC ENERGIA</title>${css}</head><body>
+      <div class="header">
+        <h1>MTEC ENERGIA</h1>
+        <h2>Relatório de ${tabLabel}</h2>
+        <div class="meta">Período: ${periodLabel} | ${filterNote} | Gerado em: ${dateStr}</div>
+      </div>
+      ${body}
+      <div class="footer">MTEC ENERGIA - Sistema de Controle de Estoque - ${dateStr}</div>
+    </body></html>`;
+  };
+
+  const handlePrint = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const html = buildPrintHtml();
+
+      if (Platform.OS === "web") {
+        const printWindow = window.open("", "_blank");
+        if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          setTimeout(() => printWindow.print(), 300);
+        }
+      } else {
+        await Print.printAsync({ html });
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Não foi possível imprimir o relatório.");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.companyTag}>MTEC ENERGIA</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.companyTag}>MTEC ENERGIA</Text>
+          <Pressable
+            onPress={handlePrint}
+            style={({ pressed }) => [styles.printBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Ionicons name="print-outline" size={18} color={Colors.primary} />
+          </Pressable>
+        </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabRow}>
           {TAB_CONFIG.map((t) => (
