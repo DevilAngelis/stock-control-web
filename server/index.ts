@@ -198,7 +198,9 @@ function setupErrorHandler(app: express.Application) {
   const port = parseInt(process.env.PORT || "5000", 10);
 
   // Ajuste para Windows: usar apenas host "localhost" e sem reusePort
-  server.listen(port, "localhost", () => {
-    log(`express server serving on http://localhost:${port}`);
+  server.listen(port, "0.0.0.0", () => {
+  log(`express server serving on port ${port}`);
+});
+
   });
 })();
