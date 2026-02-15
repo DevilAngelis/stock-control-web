@@ -1,6 +1,10 @@
 import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
 
+/* =========================
+   TIPAGENS
+========================= */
+
 export interface Category {
   id: string;
   name: string;
@@ -28,11 +32,26 @@ export interface Movement {
   createdAt: string;
 }
 
-// Em produção no Render, o frontend e backend estão no mesmo domínio
-const API_BASE = "/api";
+/* =========================
+   CONFIGURAÇÃO DE API
+========================= */
+
+// URL do backend (vem do .env)
+const API_BASE = process.env.EXPO_PUBLIC_API_URL;
+
+if (!API_BASE) {
+  console.error("EXPO_PUBLIC_API_URL não definida no .env");
+}
+
+/* =========================
+   FUNÇÃO BASE DE REQUEST
+========================= */
 
 async function apiRequest(path: string, options: RequestInit = {}) {
-  const url = `${API_BASE}${path}`;
+  const url = `${API_BASE}/api${path}`;
+
+  console.log("Chamando API:", url);
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -42,27 +61,42 @@ async function apiRequest(path: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro desconhecido" }));
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Erro desconhecido" }));
+
     throw new Error(error.message || "Erro na requisição");
   }
 
   if (response.status === 204) return null;
+
   return response.json();
 }
+
+/* =========================
+   CATEGORIES
+========================= */
 
 export async function getCategories(): Promise<Category[]> {
   return apiRequest("/categories");
 }
 
-export async function addCategory(name: string, color: string): Promise<Category> {
+export async function addCategory(
+  name: string,
+  color: string
+): Promise<Category> {
   const id = Crypto.randomUUID();
+
   return apiRequest("/categories", {
     method: "POST",
     body: JSON.stringify({ id, name, color }),
   });
 }
 
-export async function updateCategory(id: string, data: Partial<Omit<Category, "id">>): Promise<Category> {
+export async function updateCategory(
+  id: string,
+  data: Partial<Omit<Category, "id">>
+): Promise<Category> {
   return apiRequest(`/categories/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
@@ -75,24 +109,36 @@ export async function deleteCategory(id: string): Promise<void> {
   });
 }
 
+/* =========================
+   PRODUCTS
+========================= */
+
 export async function getProducts(): Promise<Product[]> {
   return apiRequest("/products");
 }
 
-export async function getProduct(id: string): Promise<Product | undefined> {
+export async function getProduct(
+  id: string
+): Promise<Product | undefined> {
   const products = await getProducts();
   return products.find((p) => p.id === id);
 }
 
-export async function addProduct(data: Omit<Product, "id" | "createdAt" | "updatedAt">): Promise<Product> {
+export async function addProduct(
+  data: Omit<Product, "id" | "createdAt" | "updatedAt">
+): Promise<Product> {
   const id = Crypto.randomUUID();
+
   return apiRequest("/products", {
     method: "POST",
     body: JSON.stringify({ ...data, id }),
   });
 }
 
-export async function updateProduct(id: string, data: Partial<Omit<Product, "id" | "createdAt">>): Promise<Product> {
+export async function updateProduct(
+  id: string,
+  data: Partial<Omit<Product, "id" | "createdAt">>
+): Promise<Product> {
   return apiRequest(`/products/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
@@ -105,17 +151,28 @@ export async function deleteProduct(id: string): Promise<void> {
   });
 }
 
+/* =========================
+   MOVEMENTS
+========================= */
+
 export async function getMovements(): Promise<Movement[]> {
   return apiRequest("/movements");
 }
 
-export async function addMovement(data: Omit<Movement, "id" | "createdAt">): Promise<Movement> {
+export async function addMovement(
+  data: Omit<Movement, "id" | "createdAt">
+): Promise<Movement> {
   const id = Crypto.randomUUID();
+
   return apiRequest("/movements", {
     method: "POST",
     body: JSON.stringify({ ...data, id }),
   });
 }
+
+/* =========================
+   BACKUP
+========================= */
 
 export interface BackupData {
   version: number;
@@ -131,6 +188,7 @@ export async function exportAllData(): Promise<BackupData> {
     getProducts(),
     getMovements(),
   ]);
+
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -144,6 +202,7 @@ export async function importAllData(data: BackupData): Promise<void> {
   for (const cat of data.categories) {
     await addCategory(cat.name, cat.color);
   }
+
   for (const prod of data.products) {
     await addProduct({
       name: prod.name,
