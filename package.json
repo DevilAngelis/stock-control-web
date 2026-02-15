@@ -5,15 +5,11 @@
   "main": "expo-router/entry",
   "scripts": {
     "postinstall": "patch-package",
-
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
-
     "build:web": "npx expo export --platform web",
     "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=server_dist",
     "build": "npm run build:web && npm run build:server",
-
     "start": "node server_dist/index.js",
-
     "db:push": "drizzle-kit push",
     "lint": "npx expo lint",
     "lint:fix": "npx expo lint --fix"
@@ -21,6 +17,7 @@
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.0.3",
+    "@neondatabase/serverless": "^1.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@stardazed/streams-text-encoding": "^1.0.2",
     "@tanstack/react-query": "^5.83.0",
@@ -65,7 +62,7 @@
     "react-native-web": "^0.21.0",
     "react-native-worklets": "0.5.1",
     "tsx": "^4.20.6",
-    "ws": "^8.18.0",
+    "ws": "^8.19.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
   },
@@ -74,6 +71,7 @@
     "@expo/ngrok": "^4.1.0",
     "@types/express": "^5.0.0",
     "@types/react": "~19.1.10",
+    "@types/ws": "^8.18.1",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
     "cross-env": "^10.1.0",
     "drizzle-kit": "^0.18.1",
