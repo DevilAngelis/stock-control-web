@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Estoque Pro",
-    "slug": "estoque-pro",
+    "name": "Stock Control Web",
+    "slug": "stock-control-web",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.myapp"
     },
     "android": {
-      "package": "com.myapp",
+      "package": "com.stockcontrol.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

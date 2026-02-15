@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
 
 export interface Category {
@@ -13,7 +13,7 @@ export interface Product {
   categoryId: string;
   quantity: number;
   minStock: number;
-  price: number;
+  price: string | number;
   unit: string;
   createdAt: string;
   updatedAt: string;
@@ -24,64 +24,59 @@ export interface Movement {
   productId: string;
   type: "entry" | "exit";
   quantity: number;
-  note: string;
+  note: string | null;
   createdAt: string;
 }
 
-const KEYS = {
-  PRODUCTS: "inventory_products",
-  CATEGORIES: "inventory_categories",
-  MOVEMENTS: "inventory_movements",
-};
+// Em produção no Render, o frontend e backend estão no mesmo domínio
+const API_BASE = "/api";
 
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: "cat_1", name: "Eletrônicos", color: "#3B82F6" },
-  { id: "cat_2", name: "Alimentos", color: "#10B981" },
-  { id: "cat_3", name: "Bebidas", color: "#8B5CF6" },
-  { id: "cat_4", name: "Limpeza", color: "#F59E0B" },
-  { id: "cat_5", name: "Escritório", color: "#EF4444" },
-  { id: "cat_6", name: "Outros", color: "#64748B" },
-];
+async function apiRequest(path: string, options: RequestInit = {}) {
+  const url = `${API_BASE}${path}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
 
-async function initCategories(): Promise<Category[]> {
-  const raw = await AsyncStorage.getItem(KEYS.CATEGORIES);
-  if (!raw) {
-    await AsyncStorage.setItem(KEYS.CATEGORIES, JSON.stringify(DEFAULT_CATEGORIES));
-    return DEFAULT_CATEGORIES;
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro desconhecido" }));
+    throw new Error(error.message || "Erro na requisição");
   }
-  return JSON.parse(raw);
+
+  if (response.status === 204) return null;
+  return response.json();
 }
 
 export async function getCategories(): Promise<Category[]> {
-  return initCategories();
+  return apiRequest("/categories");
 }
 
 export async function addCategory(name: string, color: string): Promise<Category> {
-  const categories = await getCategories();
-  const cat: Category = { id: Crypto.randomUUID(), name, color };
-  categories.push(cat);
-  await AsyncStorage.setItem(KEYS.CATEGORIES, JSON.stringify(categories));
-  return cat;
+  const id = Crypto.randomUUID();
+  return apiRequest("/categories", {
+    method: "POST",
+    body: JSON.stringify({ id, name, color }),
+  });
 }
 
-export async function updateCategory(id: string, data: Partial<Omit<Category, "id">>): Promise<Category | undefined> {
-  const categories = await getCategories();
-  const index = categories.findIndex((c) => c.id === id);
-  if (index === -1) return undefined;
-  categories[index] = { ...categories[index], ...data };
-  await AsyncStorage.setItem(KEYS.CATEGORIES, JSON.stringify(categories));
-  return categories[index];
+export async function updateCategory(id: string, data: Partial<Omit<Category, "id">>): Promise<Category> {
+  return apiRequest(`/categories/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const categories = await getCategories();
-  const filtered = categories.filter((c) => c.id !== id);
-  await AsyncStorage.setItem(KEYS.CATEGORIES, JSON.stringify(filtered));
+  return apiRequest(`/categories/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function getProducts(): Promise<Product[]> {
-  const raw = await AsyncStorage.getItem(KEYS.PRODUCTS);
-  return raw ? JSON.parse(raw) : [];
+  return apiRequest("/products");
 }
 
 export async function getProduct(id: string): Promise<Product | undefined> {
@@ -90,65 +85,36 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 }
 
 export async function addProduct(data: Omit<Product, "id" | "createdAt" | "updatedAt">): Promise<Product> {
-  const products = await getProducts();
-  const now = new Date().toISOString();
-  const product: Product = {
-    ...data,
-    id: Crypto.randomUUID(),
-    createdAt: now,
-    updatedAt: now,
-  };
-  products.push(product);
-  await AsyncStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
-  return product;
+  const id = Crypto.randomUUID();
+  return apiRequest("/products", {
+    method: "POST",
+    body: JSON.stringify({ ...data, id }),
+  });
 }
 
-export async function updateProduct(id: string, data: Partial<Omit<Product, "id" | "createdAt">>): Promise<Product | undefined> {
-  const products = await getProducts();
-  const index = products.findIndex((p) => p.id === id);
-  if (index === -1) return undefined;
-  products[index] = { ...products[index], ...data, updatedAt: new Date().toISOString() };
-  await AsyncStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
-  return products[index];
+export async function updateProduct(id: string, data: Partial<Omit<Product, "id" | "createdAt">>): Promise<Product> {
+  return apiRequest(`/products/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  const products = await getProducts();
-  const filtered = products.filter((p) => p.id !== id);
-  await AsyncStorage.setItem(KEYS.PRODUCTS, JSON.stringify(filtered));
-  const movements = await getMovements();
-  const filteredMovements = movements.filter((m) => m.productId !== id);
-  await AsyncStorage.setItem(KEYS.MOVEMENTS, JSON.stringify(filteredMovements));
+  return apiRequest(`/products/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function getMovements(): Promise<Movement[]> {
-  const raw = await AsyncStorage.getItem(KEYS.MOVEMENTS);
-  return raw ? JSON.parse(raw) : [];
+  return apiRequest("/movements");
 }
 
 export async function addMovement(data: Omit<Movement, "id" | "createdAt">): Promise<Movement> {
-  const movements = await getMovements();
-  const movement: Movement = {
-    ...data,
-    id: Crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  movements.push(movement);
-  await AsyncStorage.setItem(KEYS.MOVEMENTS, JSON.stringify(movements));
-
-  const products = await getProducts();
-  const index = products.findIndex((p) => p.id === data.productId);
-  if (index !== -1) {
-    if (data.type === "entry") {
-      products[index].quantity += data.quantity;
-    } else {
-      products[index].quantity = Math.max(0, products[index].quantity - data.quantity);
-    }
-    products[index].updatedAt = new Date().toISOString();
-    await AsyncStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
-  }
-
-  return movement;
+  const id = Crypto.randomUUID();
+  return apiRequest("/movements", {
+    method: "POST",
+    body: JSON.stringify({ ...data, id }),
+  });
 }
 
 export interface BackupData {
@@ -175,11 +141,21 @@ export async function exportAllData(): Promise<BackupData> {
 }
 
 export async function importAllData(data: BackupData): Promise<void> {
-  await AsyncStorage.setItem(KEYS.CATEGORIES, JSON.stringify(data.categories));
-  await AsyncStorage.setItem(KEYS.PRODUCTS, JSON.stringify(data.products));
-  await AsyncStorage.setItem(KEYS.MOVEMENTS, JSON.stringify(data.movements));
+  for (const cat of data.categories) {
+    await addCategory(cat.name, cat.color);
+  }
+  for (const prod of data.products) {
+    await addProduct({
+      name: prod.name,
+      categoryId: prod.categoryId,
+      quantity: prod.quantity,
+      minStock: prod.minStock,
+      price: prod.price,
+      unit: prod.unit,
+    });
+  }
 }
 
 export async function clearAllData(): Promise<void> {
-  await AsyncStorage.multiRemove([KEYS.PRODUCTS, KEYS.CATEGORIES, KEYS.MOVEMENTS]);
+  // Implementar se necessário
 }
